@@ -1,0 +1,46 @@
+python
+import sqlite3
+from cryptography.fernet import Fernet
+
+# Gere uma chave de criptografia
+chave = Fernet.generate_key()
+
+# Crie um objeto Fernet com a chave gerada
+cipher = Fernet(chave)
+
+# Conecte ao banco de dados SQLite
+conn = sqlite3.connect('database.db')
+cursor = conn.cursor()
+
+# Crie a tabela (se ainda não existir)
+cursor.execute('''
+    CREATE TABLE IF NOT EXISTS dados_protegidos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        dado_criptografado BLOB
+    )
+''')
+
+# Dado a ser protegido
+dado = b"Exemplo de dado a ser protegido"
+
+# Criptografe o dado
+dado_criptografado = cipher.encrypt(dado)
+
+# Insira o dado criptografado no banco de dados
+cursor.execute('INSERT INTO dados_protegidos (dado_criptografado) VALUES (?)', (dado_criptografado,))
+conn.commit()
+
+# Recupere o dado criptografado do banco de dados
+cursor.execute('SELECT dado_criptografado FROM dados_protegidos WHERE id = 1')
+registro = cursor.fetchone()
+dado_criptografado_recuperado = registro[0]
+
+# Descriptografe o dado recuperado
+dado_descriptografado = cipher.decrypt(dado_criptografado_recuperado)
+
+print("Dado original:", dado)
+print("Dado criptografado:", dado_criptografado)
+print("Dado descriptografado:", dado_descriptografado)
+
+# Feche a conexão com o banco de dados
+conn.close()
